@@ -1,0 +1,7 @@
+# temporary
+**.swp
+**~
+
+# generated files
+.build/
+bin/
