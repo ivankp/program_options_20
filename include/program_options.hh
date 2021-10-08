@@ -1,14 +1,17 @@
 #ifndef IVANP_PROGRAM_OPTIONS_HH
 #define IVANP_PROGRAM_OPTIONS_HH
 
+#include <utility>
 #include <type_traits>
 
 namespace ivanp {
 namespace po {
 
-template <typename> class ref;
+template <typename>
+class ref;
 
-template <> class ref<bool> {
+template <>
+class ref<bool> {
   bool& x;
 public:
   explicit ref(bool& x): x(x) { }
@@ -30,7 +33,9 @@ template <typename T>
 concept CRef = Ref<const T>;
 
 template <typename F>
-concept OptFcn = std::is_invocable_v<F> || std::is_invocable_v<F,const char*>;
+concept OptFcn =
+  std::is_invocable_v<F> ||
+  std::is_invocable_v<F,const char*>;
 
 template <OptFcn F>
 struct opt {
@@ -38,7 +43,9 @@ struct opt {
   F f;
 
   template <typename T>
-  requires std::is_same_v<F,T>
+  requires std::is_same_v<
+    std::remove_cvref_t<F>,
+    std::remove_cvref_t<T> >
   opt(const char* s, T&& f): s(s), f(std::forward<T>(f)) { }
 
   template <Ref T>
@@ -50,7 +57,7 @@ struct opt {
   opt(const char* s, const T& x): s(s), f(ref<const T>(x)) { }
 
   void operator()() requires requires { f(); } { f(); }
-  void operator()(char* arg) requires requires { f(arg); } { f(arg); }
+  void operator()(const char* arg) requires requires { f(arg); } { f(arg); }
 };
 
 template <OptFcn F>
