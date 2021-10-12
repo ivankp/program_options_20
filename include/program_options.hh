@@ -3,6 +3,8 @@
 
 #include <utility>
 #include <type_traits>
+#include <stdexcept>
+#include "string.hh"
 
 namespace ivanp {
 namespace po {
@@ -15,7 +17,13 @@ class ref<bool> {
   bool& x;
 public:
   explicit ref(bool& x): x(x) { }
-  void operator()() { x = !x; }
+  void operator()() {
+#ifdef IVANP_BOOL_OPT_TOGGLE
+    x = !x;
+#else
+    x = true;
+#endif
+  }
 };
 
 template <typename T>
@@ -73,7 +81,52 @@ opt(const char*, const T&) -> opt<ref<const T>>;
 
 template <typename... T>
 void program_options(int argc, char** argv, po::opt<T>&&... opts) {
-  TEST(__PRETTY_FUNCTION__)
+  // const unsigned len[] { (unsigned) strlen(opts.s) ... };
+  for (int i=0; i<argc; ++i) {
+    char* arg = argv[i];
+    if (*arg == '-') { // option
+      ++arg;
+      if (*arg == '-') { // long option
+        ++arg;
+        if (!([=](auto& o){
+          if (!strcmp(arg,o.s)) {
+            if constexpr (requires { o(); }) {
+              o();
+            } else if constexpr (requires { o(arg); }) {
+              o(arg);
+            }
+            return true;
+          }
+          return false;
+        }(opts) || ... )) { // unexpected option
+          throw std::runtime_error(cat("unexpected option --",arg));
+        }
+      } else { // short option
+        for (;;) {
+          const char c = *arg++;
+          if (!([&arg,c](auto& o){
+            if (o.s[0]==c && o.s[1]=='\0') {
+              if (!*arg) { // last option in string
+                if constexpr (requires { o(); }) o();
+                else if constexpr (requires { o(arg); }) o(nullptr);
+              } else {
+                if constexpr (requires { o(arg); }) {
+                  o(arg);
+                  arg = nullptr;
+                } else if constexpr (requires { o(); }) o();
+              }
+              return true;
+            }
+            return false;
+          }(opts) || ... )) { // unexpected option
+            throw std::runtime_error(cat("unexpected option -",*(arg-1)));
+          }
+          if (!arg || !*arg) break;
+        }
+      }
+    } else { // not an option
+    }
+  }
 }
 
 }
