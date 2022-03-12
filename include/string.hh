@@ -1,12 +1,12 @@
-#ifndef IVANP_STRING_HH
-#define IVANP_STRING_HH
+#ifndef IVAN_STRING_HH
+#define IVAN_STRING_HH
 
 #include <string>
 #include <cstring>
 #include <string_view>
 #include <type_traits>
 
-namespace ivanp {
+namespace ivan {
 
 [[nodiscard]]
 inline const char* cstr(const char* x) noexcept { return x; }

@@ -1,20 +1,33 @@
 #include <iostream>
 
 #include "macros.hh"
-#define IVANP_BOOL_OPT_TOGGLE
 #include "program_options.hh"
 
 int main(int argc, char* argv[]) {
-  bool b = false;
+  bool x = false, y = true, z = false;
   std::string s;
+  int i = 0;
+  unsigned u = 0;
+  double f = 0;
 
-  { using ivanp::po::opt;
-    ivanp::program_options(argc,argv,
-      opt("b",b),
-      opt("s",s)
+  { using ivan::po::opt;
+    ivan::program_options(argc,argv,
+      opt("x",x),
+      opt("y",y,false),
+      opt("z",z,true),
+      opt("s",s),
+      opt("str",s),
+      opt("i",i),
+      opt("u",u),
+      opt("f",f)
     );
   }
 
-  TEST(b)
+  TEST(x)
+  TEST(y)
+  TEST(z)
   TEST(s)
+  TEST(i)
+  TEST(u)
+  TEST(f)
 }
