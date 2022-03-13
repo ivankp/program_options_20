@@ -11,8 +11,9 @@ int main(int argc, char* argv[]) {
   double f = 0;
 
   { using ivan::po::opt;
-    ivan::program_options(argc,argv,
+    ivan::program_options(argc-1,argv+1,
       opt("x",x),
+      opt("bool",x),
       opt("y",y,false),
       opt("z",z,true),
       opt("s",s),

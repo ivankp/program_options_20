@@ -35,7 +35,7 @@ class ref<T> {
   T& x;
 public:
   explicit ref(T& x): x(x) { }
-  void operator()(const char* val) { x = ston<T>(val); }
+  void operator()(const char* val) { x = stox<T>(val); }
 };
 
 // ref concepts -----------------------------------------------------
@@ -103,6 +103,8 @@ opt(const char*, T&, Args&&...) -> opt<factory<T,Args...>>;
 
 }
 
+// NOTE: short option must not be '-', long option must not contain =
+
 // program_options function -----------------------------------------
 template <typename... F>
 void program_options(int argc, char** argv, po::opt<F>&&... opts) {
@@ -110,39 +112,72 @@ void program_options(int argc, char** argv, po::opt<F>&&... opts) {
     char* arg = argv[i];
     if (*arg == '-') { // option
       ++arg;
-      if (*arg == '-') { // long option
+      if (*arg == '-') { // long option (--)
         ++arg;
-        if (!([=](auto& o){
-          if (!strcmp(arg,o.s)) {
-            if constexpr (requires { o(); }) o();
-            else if constexpr (requires { o(arg); }) o(arg);
+        if (*arg=='\0') { // --
+          // TODO: find a way to elegantly handle --
+          throw std::runtime_error("unexpected option --");
+        } else {
+          if (!([&](auto& o){
+            static constexpr bool val[2] {
+              requires { o(); },
+              requires { o(arg); }
+            }; // OptFcn guarantees at least one is true
+            const size_t n = strcspn(arg,"=");
+            const bool eq = arg[n];
+            if (memcmp(arg,o.s,n)) // skip other opts
+              return false;
+            if constexpr(!val[1]) {
+              if (eq) throw std::runtime_error(cat(
+                "option --",o.s," does not accept a value"));
+              o();
+            } else if (eq) {
+              o(arg+n+1);
+            } else if (i+1 < argc && argv[i+1][0]!='-') {
+              // TODO
+              throw std::runtime_error(
+                "consuming next argument not implemented");
+            } else {
+              if constexpr (val[0]) o();
+              else throw std::runtime_error(cat(
+                "option --",o.s," requires a value"));
+            }
             return true;
-          }
-          return false;
-        }(opts) || ... )) { // unexpected option
-          throw std::runtime_error(cat("unexpected option --",arg));
+          }(opts) || ... )) throw std::runtime_error(cat(
+            "unexpected option --",arg));
         }
-      } else { // short option
-        for (;;) {
-          const char c = *arg++;
-          if (!([&arg,c](auto& o){
-            if (o.s[0]==c && o.s[1]=='\0') {
-              if (!*arg) { // last option in string
-                if constexpr (requires { o(); }) o();
-                else if constexpr (requires { o(arg); }) o(nullptr);
+      } else { // short option (-)
+        if (*arg=='\0') { // -
+          // TODO: find a way to elegantly handle -
+          throw std::runtime_error("unexpected option -");
+        } else {
+          for (;;) {
+            const char c = *arg++;
+            if (!([&](auto& o){
+              static constexpr bool val[2] {
+                requires { o(); },
+                requires { o(arg); }
+              }; // OptFcn guarantees at least one is true
+              if (!(o.s[0]==c && o.s[1]=='\0')) // skip other opts
+                return false;
+              if constexpr(!val[1]) o();
+              else if (*arg!='\0') { // not last option in arg
+                o(arg);
+                arg = nullptr;
+              } else if (i+1 < argc && argv[i+1][0]!='-') {
+                // TODO
+                throw std::runtime_error(
+                  "consuming next argument not implemented");
               } else {
-                if constexpr (requires { o(arg); }) {
-                  o(arg);
-                  arg = nullptr;
-                } else if constexpr (requires { o(); }) o();
+                if constexpr (val[0]) o();
+                else throw std::runtime_error(cat(
+                  "option -",c," requires a value"));
               }
               return true;
-            }
-            return false;
-          }(opts) || ... )) { // unexpected option
-            throw std::runtime_error(cat("unexpected option -",*(arg-1)));
+            }(opts) || ... )) throw std::runtime_error(cat(
+              "unexpected option -",c));
+            if (!arg || !*arg) break;
           }
-          if (!arg || !*arg) break;
         }
       }
     } else { // not an option
