@@ -9,6 +9,7 @@ int main(int argc, char* argv[]) {
   int i = 0;
   unsigned u = 0;
   double f = 0;
+  double g = 0;
 
   { using ivan::po::opt;
     ivan::program_options(argc-1,argv+1,
@@ -20,7 +21,8 @@ int main(int argc, char* argv[]) {
       opt("str",s),
       opt("i",i),
       opt("u",u),
-      opt("f",f)
+      opt("f",f),
+      opt("g",[&g](const char* s){ g = atof(s)*2; })
     );
   }
 
@@ -31,4 +33,5 @@ int main(int argc, char* argv[]) {
   TEST(i)
   TEST(u)
   TEST(f)
+  TEST(g)
 }
