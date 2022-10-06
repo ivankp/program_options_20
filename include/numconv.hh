@@ -21,7 +21,9 @@ struct xtos<T> {
     ? ((616*sizeof(T)) >> 8) + 1 + std::is_signed_v<T>
     : sizeof(T)*2 + 8
   ];
-  xtos(T x) noexcept: n(std::to_chars(s,s+sizeof(s),x).ptr-s) { }
+  xtos(T x) noexcept: n(std::to_chars(s,s+sizeof(s),x).ptr-s) {
+    s[n] = '\0';
+  }
   operator std::string_view() const noexcept { return { s, n }; }
 };
 

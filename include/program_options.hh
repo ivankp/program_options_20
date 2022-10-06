@@ -123,6 +123,8 @@ struct consumer_struct {
 
 // NOTE: short option must not be '-', long option must not contain =
 
+// TODO: optional values
+
 // program_options function -----------------------------------------
 template <typename... F>
 void program_options(int argc, char** argv, po::opt<F>&&... opts) {
