@@ -2,37 +2,35 @@
 
 ifeq (0, $(words $(findstring $(MAKECMDGOALS), clean))) #############
 
-CPPFLAGS := -std=c++20 -Iinclude
-CXXFLAGS := -Wall -O3 -flto -fmax-errors=3 -fconcepts-diagnostics-depth=3
-# CXXFLAGS := -Wall -g -fmax-errors=3
+CFLAGS := -Wall -O3 -flto
+# CFLAGS := -Wall -Og -g
+CFLAGS += -fmax-errors=3 -Iinclude
 
 # generate .d files during compilation
 DEPFLAGS = -MT $@ -MMD -MP -MF .build/$*.d
 
 FIND_MAIN := \
-  find src -type f -name '*.cc' \
+  find src -type f -regex '.*\.c+$$' \
   | xargs grep -l '^\s*int\s\+main\s*(' \
-  | sed 's:^src/\(.*\)\.cc$$:bin/\1:'
+  | sed 's:^src/\(.*\)\.c\+$$:bin/\1:'
 EXE := $(shell $(FIND_MAIN))
 
 all: $(EXE)
-
-#####################################################################
 
 .PRECIOUS: .build/%.o
 
 bin/%: .build/%.o
 	@mkdir -pv $(dir $@)
-	$(CXX) $(LDFLAGS) $(LF_$*) $(filter %.o,$^) -o $@ $(LDLIBS) $(L_$*)
+	$(CXX) $(LDFLAGS) $(filter %.o,$^) -o $@ $(LDLIBS)
 
 .build/%.o: src/%.cc
 	@mkdir -pv $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEPFLAGS) $(C_$*) -c $(filter %.cc,$^) -o $@
+	$(CXX) -std=c++20 $(CFLAGS) $(DEPFLAGS) -c $(filter %.cc,$^) -o $@
 
--include $(shell [ -d .build ] && find .build -type f -name '*.d')
+-include $(shell [ -d '.build' ] && find .build -type f -name '*.d')
 
 endif ###############################################################
 
 clean:
-	@rm -rfv bin .build
+	@rm -frv .build bin
 

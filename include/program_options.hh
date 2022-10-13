@@ -79,7 +79,7 @@ class factory {
   T& x;
   std::tuple<Args&&...> args;
 public:
-  explicit factory(T& x, Args&&... args): x(x), args(static_cast<Args&&>(args)...) { }
+  factory(T& x, Args&&... args): x(x), args(static_cast<Args&&>(args)...) { }
   bool operator()() { x = std::make_from_tuple<T>(args); return false; }
 };
 
@@ -182,7 +182,8 @@ void program_options(
       no_arg = nullptr;
     } else if (f) {
       throw std::runtime_error(cat(
-        "option -", std::string_view(prev_arg,end), " requires an argument"
+        "option -", std::string_view( prev_arg-(prev_arg[1]!='\0'), end ),
+        " requires an argument"
       ));
     }
   };
@@ -201,7 +202,7 @@ void program_options(
       } else { // doesn't take arguments
         // throw only if long option
         // short option tail may consist of additional options
-        if (end-arg > 1) throw std::runtime_error(cat(
+        if (*end && end-arg > 1) throw std::runtime_error(cat(
           "option -", std::string_view( arg+(all_dashes?1:-1), end ),
           " does not take arguments"
         ));
@@ -220,7 +221,7 @@ void program_options(
       ++arg;
       if (*arg == '\0') { // isolated dash is not an option
         --arg;
-        goto free_arg;
+        goto argument;
       }
 
       prev_no_arg();
@@ -247,7 +248,7 @@ malformed:
         if (!find_opt()) throw std::runtime_error(cat(
           "unexpected option -", std::string_view( arg+(all_dashes?1:-1), end )
         ));
-        if (*end && pass_arg) { arg = end + 1; goto argument; }
+        if (*end && pass_arg) { arg = end + 1; goto option_argument; }
       } else { // short options (-)
         for (;;) { // loop over consecutive short options
           const char c = *arg;
@@ -257,19 +258,19 @@ malformed:
           if (!find_opt()) throw std::runtime_error(cat(
             "unexpected option -", std::string_view(arg,1)
           ));
-          if (*++arg && pass_arg) goto argument;
+          if (*++arg && pass_arg) goto option_argument;
         }
       }
     } else { // not an option
-      if (pass_arg) {
 argument: ;
+      if (pass_arg) {
+option_argument: ;
         if (!(*pass_arg)(f,arg)) {
           pass_arg = nullptr;
           f = nullptr;
         }
         no_arg = nullptr;
       } else {
-free_arg:
         free_arg(arg);
       }
     }

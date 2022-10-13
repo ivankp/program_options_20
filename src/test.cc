@@ -8,14 +8,14 @@ int main(int argc, char* argv[]) {
   std::string s;
   int i = 0;
   unsigned u = 0;
-  double f = 0;
+  float f = 0;
   double g = 0;
 
   try {
     using ivan::po::opt;
     ivan::program_options(argc-1,argv+1,
       [](const char* arg){ TEST(arg) },
-      opt("x",x),
+      opt("x,b",x),
       opt("bool",x),
       opt("y",y,false),
       opt("z",z,true),
@@ -23,7 +23,9 @@ int main(int argc, char* argv[]) {
       opt("i",i),
       opt("u",u),
       opt("f",f),
-      opt("g",[&g](const char* s){ g = atof(s)*2; })
+      opt("g",[&g](const char* s){ g = atof(s)*2; }),
+      opt("--",[]{ puts("double dash"); }),
+      opt("---",[]{ puts("triple dash"); })
     );
   } catch (const std::exception& e) {
     std::cerr << e.what() << '\n';
