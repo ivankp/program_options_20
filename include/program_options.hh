@@ -5,7 +5,7 @@
 #include <tuple>
 #include <type_traits>
 #include <charconv>
-#include <exception>
+#include <stdexcept>
 #include <string_view>
 #include <string>
 
@@ -144,15 +144,14 @@ void no_arg_f(void* f) {
 
 // match option with definition -------------------------------------
 bool match(const char* def, const char* arg, const char* end) {
-  const char* _a;
+  const char* a;
 next_opt:
-  _a = arg;
+  a = arg;
 next_char:
-  const char a = *_a;
   const char b = *def;
-  if (_a==end && (b=='\0' || b==',')) return true;
-  if (a==b) {
-    ++_a;
+  if (a==end && (b=='\0' || b==',')) return true;
+  if (*a==b) {
+    ++a;
     ++def;
     goto next_char;
   } else {
